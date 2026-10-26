@@ -4,10 +4,12 @@
 
 ![Nirnhoned Metrics](screenshots/01-group-damage.png)
 
+<sub><i>Screenshots taken with the Spanish game client. The add-on is fully translated into English, German and French and follows your game language.</i></sub>
+
 **A damage and healing meter for The Elder Scrolls Online.** Colored bars with every player's total damage or healing, DPS/HPS and share of the group for each fight, plus a breakdown of your own abilities. Everything in a small window you can move, resize and configure.
 
 <details>
-<summary><b>Screenshots</b> (5)</summary>
+<summary><b>Screenshots</b> (8)</summary>
 <br>
 <table>
 <tr>
@@ -18,6 +20,11 @@
 <tr>
 <td align="center"><a href="screenshots/04-my-abilities-damage.png"><img src="screenshots/04-my-abilities-damage.png" width="260" alt="My abilities: damage"></a><br><sub>My abilities: damage</sub></td>
 <td align="center"><a href="screenshots/05-my-abilities-healing.png"><img src="screenshots/05-my-abilities-healing.png" width="260" alt="My abilities: healing"></a><br><sub>My abilities: healing</sub></td>
+<td align="center"><a href="screenshots/06-settings-window.png"><img src="screenshots/06-settings-window.png" width="260" alt="Settings: window"></a><br><sub>Settings: window</sub></td>
+</tr>
+<tr>
+<td align="center"><a href="screenshots/07-settings-bars.png"><img src="screenshots/07-settings-bars.png" width="260" alt="Settings: bars and class colors"></a><br><sub>Settings: bars and class colors</sub></td>
+<td align="center"><a href="screenshots/08-settings-text-data.png"><img src="screenshots/08-settings-text-data.png" width="260" alt="Settings: text and data"></a><br><sub>Settings: text and data</sub></td>
 </tr>
 </table>
 </details>

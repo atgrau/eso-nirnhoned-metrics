@@ -4,12 +4,14 @@
 
 ![Nirnhoned Metrics](screenshots/01-group-damage.png)
 
+<sub><i>Capturas hechas con el cliente del juego en español. El addon está traducido al inglés, alemán y francés y usa el idioma de tu juego.</i></sub>
+
 **Un medidor de daño y sanación para The Elder Scrolls Online.** Barras de colores con el daño o la sanación total, el DPS/HPS y el porcentaje del grupo de cada jugador en cada combate, además del desglose de tus propias habilidades. Todo en una ventana pequeña que puedes mover, redimensionar y configurar.
 
 Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
-<summary><b>Capturas</b> (5)</summary>
+<summary><b>Capturas</b> (8)</summary>
 <br>
 <table>
 <tr>
@@ -20,6 +22,11 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 <tr>
 <td align="center"><a href="screenshots/04-my-abilities-damage.png"><img src="screenshots/04-my-abilities-damage.png" width="260" alt="Mis habilidades: daño"></a><br><sub>Mis habilidades: daño</sub></td>
 <td align="center"><a href="screenshots/05-my-abilities-healing.png"><img src="screenshots/05-my-abilities-healing.png" width="260" alt="Mis habilidades: sanación"></a><br><sub>Mis habilidades: sanación</sub></td>
+<td align="center"><a href="screenshots/06-settings-window.png"><img src="screenshots/06-settings-window.png" width="260" alt="Ajustes: ventana"></a><br><sub>Ajustes: ventana</sub></td>
+</tr>
+<tr>
+<td align="center"><a href="screenshots/07-settings-bars.png"><img src="screenshots/07-settings-bars.png" width="260" alt="Ajustes: barras y colores de clase"></a><br><sub>Ajustes: barras y colores de clase</sub></td>
+<td align="center"><a href="screenshots/08-settings-text-data.png"><img src="screenshots/08-settings-text-data.png" width="260" alt="Ajustes: texto y datos"></a><br><sub>Ajustes: texto y datos</sub></td>
 </tr>
 </table>
 </details>
