@@ -9,7 +9,7 @@
 **A damage and healing meter for The Elder Scrolls Online.** Colored bars with every player's total damage or healing, DPS/HPS and share of the group for each fight, plus a breakdown of your own abilities. Everything in a small window you can move, resize and configure.
 
 <details>
-<summary><b>Screenshots</b> (8)</summary>
+<summary><b>Screenshots</b> (9)</summary>
 <br>
 <table>
 <tr>
@@ -25,6 +25,7 @@
 <tr>
 <td align="center"><a href="screenshots/07-settings-bars.png"><img src="screenshots/07-settings-bars.png" width="260" alt="Settings: bars and class colors"></a><br><sub>Settings: bars and class colors</sub></td>
 <td align="center"><a href="screenshots/08-settings-text-data.png"><img src="screenshots/08-settings-text-data.png" width="260" alt="Settings: text and data"></a><br><sub>Settings: text and data</sub></td>
+<td align="center"><a href="screenshots/09-ability-tooltip.png"><img src="screenshots/09-ability-tooltip.png" width="260" alt="Ability details in the tooltip"></a><br><sub>Ability details in the tooltip</sub></td>
 </tr>
 </table>
 </details>

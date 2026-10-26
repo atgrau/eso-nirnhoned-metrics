@@ -11,7 +11,7 @@
 Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
-<summary><b>Capturas</b> (8)</summary>
+<summary><b>Capturas</b> (9)</summary>
 <br>
 <table>
 <tr>
@@ -27,6 +27,7 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 <tr>
 <td align="center"><a href="screenshots/07-settings-bars.png"><img src="screenshots/07-settings-bars.png" width="260" alt="Ajustes: barras y colores de clase"></a><br><sub>Ajustes: barras y colores de clase</sub></td>
 <td align="center"><a href="screenshots/08-settings-text-data.png"><img src="screenshots/08-settings-text-data.png" width="260" alt="Ajustes: texto y datos"></a><br><sub>Ajustes: texto y datos</sub></td>
+<td align="center"><a href="screenshots/09-ability-tooltip.png"><img src="screenshots/09-ability-tooltip.png" width="260" alt="Detalle de una habilidad en la descripción emergente"></a><br><sub>Detalle de una habilidad en la descripción emergente</sub></td>
 </tr>
 </table>
 </details>
