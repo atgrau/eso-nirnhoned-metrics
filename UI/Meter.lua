@@ -29,6 +29,7 @@ local OTHER_TEXT = { 1, 1, 1, 1 }
 local PET_TEXT = { 0.75, 0.85, 1, 1 }
 local REST_TEXT = { 0.8, 0.8, 0.8, 1 }
 local REST_COLOR = { 0.45, 0.45, 0.48, 1 }
+local WHITE = { 1, 1, 1, 1 }
 
 local function Font(size)
     return string.format("$(BOLD_FONT)|%d|soft-shadow-thick", zo_round(size))
@@ -167,6 +168,21 @@ local function ClassColor(classId)
     return sv.barColor
 end
 
+-- Los iconos de clase son siluetas blancas: se tiñen con el color de la clase
+-- (aunque las barras usen un solo color), aclarado para que resalte sobre el fondo.
+local ICON_LIGHTEN = 0.25
+local function ClassIconColor(classId)
+    local c = classId and NM.sv.classColors[classId]
+    if not c then return nil end
+    local r, g, b = U.Color(c)
+    return {
+        r + (1 - r) * ICON_LIGHTEN,
+        g + (1 - g) * ICON_LIGHTEN,
+        b + (1 - b) * ICON_LIGHTEN,
+        1,
+    }
+end
+
 -- Filas del modo grupo: tú (exacto) + los miembros que comparten datos.
 local function GroupRows(fight)
     local rows = {}
@@ -177,6 +193,7 @@ local function GroupRows(fight)
             account = GetDisplayName(),
             classId = classId,
             icon = U.ClassIcon(classId),
+            iconColor = ClassIconColor(classId),
             color = ClassColor(classId),
             damage = fight.damage,
             dps = fight.damage / F.ActiveTime(fight),
@@ -189,6 +206,7 @@ local function GroupRows(fight)
             account = member.account,
             classId = member.classId,
             icon = U.ClassIcon(member.classId),
+            iconColor = ClassIconColor(member.classId),
             color = ClassColor(member.classId),
             damage = member.damage,
             dps = member.dps,
@@ -378,6 +396,7 @@ local function LayoutRow(row, r, rank, maxDamage, width)
     if sv.showIcon and r.icon and r.icon ~= "" then
         local inset = sv.barStyle ~= "flat" and 1 or 0
         row.icon:SetTexture(r.icon)
+        row.icon:SetColor(U.Color(r.iconColor, WHITE))
         row.icon:ClearAnchors()
         row.icon:SetAnchor(TOPLEFT, row, TOPLEFT, inset, inset)
         row.icon:SetDimensions(h - inset * 2, h - inset * 2)
@@ -704,7 +723,7 @@ end
 -- Menú (clic en el título o clic derecho)
 ---------------------------------------------------------------------------
 local function Check(on, text)
-    return (on and "|c4FD1C5•|r " or "   ") .. text
+    return (on and "|c" .. NM.COLOR .. "•|r " or "   ") .. text
 end
 
 -- El icono de la vista activa se ve encendido y el otro apagado.

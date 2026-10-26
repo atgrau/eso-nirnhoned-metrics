@@ -4,7 +4,8 @@ NirnhonedMetrics = NirnhonedMetrics or {}
 local NM = NirnhonedMetrics
 
 NM.name = "NirnhonedMetrics"
-NM.title = "|c4FD1C5Nirnhoned|r Metrics"
+NM.COLOR = "D42F2F"            -- rojo Nirnhoned (como el rasgo del juego)
+NM.title = "|c" .. NM.COLOR .. "Nirnhoned|r Metrics"
 NM.version = "1.0.0"
 NM.svVersion = 2
 NM.author = "@Artioner"
@@ -76,7 +77,7 @@ end
 
 function NM.Print(fmt, ...)
     local msg = select("#", ...) > 0 and string.format(fmt, ...) or tostring(fmt)
-    NM.Chat("|c4FD1C5[Nirnhoned Metrics]|r " .. msg)
+    NM.Chat("|c" .. NM.COLOR .. "[Nirnhoned Metrics]|r " .. msg)
 end
 
 local function OnAddOnLoaded(_, addonName)
