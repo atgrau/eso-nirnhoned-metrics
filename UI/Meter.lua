@@ -51,6 +51,15 @@ local function MinHeight()
     return HeaderHeight() + FooterHeight() + 30
 end
 
+-- El juego no vuelve a dibujar el texto de una etiqueta al cambiarle la fuente si
+-- el texto no cambia: se vacía para que el siguiente SetText lo dibuje con la nueva.
+local function SetLabelFont(label, font)
+    local text = label:GetText()
+    label:SetFont(font)
+    label:SetText("")
+    label:SetText(text)
+end
+
 local function Solid(name, parent, r, g, b, a)
     local bd = WM:CreateControl(name, parent, CT_BACKDROP)
     bd:SetCenterColor(r, g, b, a)
@@ -384,9 +393,8 @@ local function LayoutRow(row, r, rank, maxDamage, width)
     -- Cambiar la fuente obliga a recolocar el texto: solo cuando cambia el tamaño.
     if row.fontSize ~= sv.fontSize then
         row.fontSize = sv.fontSize
-        local font = Font(sv.fontSize)
-        row.left:SetFont(font)
-        row.right:SetFont(font)
+        SetLabelFont(row.left, Font(sv.fontSize))
+        SetLabelFont(row.right, Font(sv.fontSize))
     end
     local textColor = OTHER_TEXT
     if r.isSelf and sv.highlightSelf then
@@ -460,7 +468,10 @@ function M.Refresh()
 
     M.empty:SetHidden(#rows > 0)
     if #rows == 0 then
-        M.empty:SetFont(Font(sv.fontSize - 1))
+        if M.empty.fontSize ~= sv.fontSize then
+            M.empty.fontSize = sv.fontSize
+            SetLabelFont(M.empty, Font(sv.fontSize - 1))
+        end
         M.empty:SetText(L.EMPTY)
     end
 end
@@ -507,6 +518,16 @@ function M.SetLocked(locked)
     M.lockBtn:SetNormalTexture(tex.up)
     M.lockBtn:SetMouseOverTexture(tex.over)
     M.lockBtn:SetPressedTexture(tex.down)
+
+    -- Bloqueada no se ven ajustes ni cerrar: el candado pasa a ser el último icono.
+    M.settingsBtn:SetHidden(locked)
+    M.closeBtn:SetHidden(locked)
+    M.lockBtn:ClearAnchors()
+    if locked then
+        M.lockBtn:SetAnchor(RIGHT, M.header, RIGHT, -4, 0)
+    else
+        M.lockBtn:SetAnchor(RIGHT, M.settingsBtn, LEFT, 0, 0)
+    end
 end
 
 function M.ApplyPosition()
@@ -594,8 +615,9 @@ end
 -- Asa para redimensionar: la esquina cambia ancho y alto; los bordes, solo uno.
 -- Van en un nivel de dibujo superior para que las barras (que también reciben el
 -- ratón para arrastrar la ventana) no les quiten el clic.
-local function ResizeHandle(name, resizeW, resizeH, cursor, normalAlpha, hoverAlpha)
-    local handle = Solid(name, M.frame, 1, 1, 1, normalAlpha)
+-- paint(handle, hovered) dibuja el asa en reposo o con el ratón encima.
+local function ResizeHandle(name, resizeW, resizeH, cursor, paint)
+    local handle = Solid(name, M.frame, 1, 1, 1, 0)
     handle:SetDrawTier(DT_HIGH)
     handle:SetMouseEnabled(true)
     handle:SetHandler("OnMouseDown", function(_, button)
@@ -621,30 +643,56 @@ local function ResizeHandle(name, resizeW, resizeH, cursor, normalAlpha, hoverAl
         M.Refresh()
     end)
     handle:SetHandler("OnMouseEnter", function()
-        handle:SetCenterColor(1, 1, 1, hoverAlpha)
+        paint(handle, true)
         if cursor then WM:SetMouseCursor(cursor) end
     end)
     handle:SetHandler("OnMouseExit", function()
-        handle:SetCenterColor(1, 1, 1, normalAlpha)
+        paint(handle, false)
         if MOUSE_CURSOR_DO_NOT_CARE then WM:SetMouseCursor(MOUSE_CURSOR_DO_NOT_CARE) end
     end)
     return handle
+end
+
+-- Los bordes son invisibles y se iluminan con el ratón encima.
+local function PaintEdge(handle, hovered)
+    handle:SetCenterColor(1, 1, 1, hovered and 0.35 or 0)
+end
+
+-- La esquina es un triángulo hecho con franjas de 2 px, cada una más ancha que la
+-- anterior y alineadas a la derecha.
+local GRIP_STEP = 2
+local function PaintCorner(handle, hovered)
+    for _, strip in ipairs(handle.strips) do
+        strip:SetCenterColor(1, 1, 1, hovered and 0.9 or 0.45)
+    end
+end
+
+local function BuildTriangle(handle, size)
+    handle.strips = {}
+    for i = 1, size / GRIP_STEP do
+        local strip = Solid(handle:GetName() .. "Strip" .. i, handle, 1, 1, 1, 0.45)
+        strip:SetDrawTier(DT_HIGH)
+        strip:SetDimensions(i * GRIP_STEP, GRIP_STEP)
+        strip:SetAnchor(BOTTOMRIGHT, handle, BOTTOMRIGHT, 0, -(size - i * GRIP_STEP))
+        handle.strips[i] = strip
+    end
 end
 
 local RESIZE_EDGE = 5     -- grosor de los bordes que redimensionan
 local RESIZE_CORNER = 14
 
 local function BuildResizeHandles(frame)
-    local corner = ResizeHandle("NirnhonedMetricsGrip", true, true, MOUSE_CURSOR_RESIZE_NWSE, 0.45, 0.9)
+    local corner = ResizeHandle("NirnhonedMetricsGrip", true, true, MOUSE_CURSOR_RESIZE_NWSE, PaintCorner)
     corner:SetDimensions(RESIZE_CORNER, RESIZE_CORNER)
-    corner:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, 0, 0)
+    corner:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, -1, -1)
+    BuildTriangle(corner, RESIZE_CORNER)
 
-    local right = ResizeHandle("NirnhonedMetricsGripRight", true, false, MOUSE_CURSOR_RESIZE_EW, 0, 0.35)
+    local right = ResizeHandle("NirnhonedMetricsGripRight", true, false, MOUSE_CURSOR_RESIZE_EW, PaintEdge)
     right:SetWidth(RESIZE_EDGE)
     right:SetAnchor(TOPRIGHT, M.header, BOTTOMRIGHT, 0, 0)
     right:SetAnchor(BOTTOMRIGHT, corner, TOPRIGHT, 0, 0)
 
-    local bottom = ResizeHandle("NirnhonedMetricsGripBottom", false, true, MOUSE_CURSOR_RESIZE_NS, 0, 0.35)
+    local bottom = ResizeHandle("NirnhonedMetricsGripBottom", false, true, MOUSE_CURSOR_RESIZE_NS, PaintEdge)
     bottom:SetHeight(RESIZE_EDGE)
     bottom:SetAnchor(BOTTOMLEFT, frame, BOTTOMLEFT, 0, 0)
     bottom:SetAnchor(BOTTOMRIGHT, corner, BOTTOMLEFT, 0, 0)
@@ -765,13 +813,16 @@ local function Build()
     M.header = header
 
     -- Nombre del addon y, a la derecha, la fila de iconos (de derecha a izquierda:
-    -- cerrar, ajustes, candado, reiniciar, chat, combates, mis habilidades, grupo).
+    -- cerrar, ajustes, candado, reiniciar, combates, mis habilidades, grupo).
+    -- Con la ventana bloqueada, cerrar y ajustes se ocultan (ver M.SetLocked).
     local close = IconButton("NirnhonedMetricsClose", header, TEX_CLOSE, L.HIDE_WINDOW, function() M.SetShown(false) end)
     close:SetDimensions(16, 16)
     close:SetAnchor(RIGHT, header, RIGHT, -4, 0)
+    M.closeBtn = close
 
     local settings = IconButton("NirnhonedMetricsSettings", header, TEX_SETTINGS, L.SETTINGS, function() NM.Settings.Open() end)
     settings:SetAnchor(RIGHT, close, LEFT, -2, 0)
+    M.settingsBtn = settings
 
     M.lockBtn = IconButton("NirnhonedMetricsLock", header, TEX_LOCKED,
         function() return NM.sv.window.locked and L.UNLOCK or L.LOCK end,
@@ -835,14 +886,14 @@ end
 -- Tamaños de texto de la cabecera y del pie; ambos crecen con su texto.
 local function ApplyHeader()
     M.header:SetHeight(HeaderHeight())
-    M.title:SetFont(Font(NM.sv.titleFontSize))
+    SetLabelFont(M.title, Font(NM.sv.titleFontSize))
 
     local footerH = FooterHeight()
     local footerFont = Font(NM.sv.fontSize - 2)
     M.footer:SetHeight(footerH)
     M.clock:SetDimensions(footerH - 4, footerH - 4)
-    M.footerTime:SetFont(footerFont)
-    M.footerFight:SetFont(footerFont)
+    SetLabelFont(M.footerTime, footerFont)
+    SetLabelFont(M.footerFight, footerFont)
 end
 
 -- Aplica los ajustes visuales (se llama desde el panel de ajustes).
