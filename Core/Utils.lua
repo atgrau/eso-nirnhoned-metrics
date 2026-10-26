@@ -38,6 +38,13 @@ function U.FormatName(name)
     return zo_strformat("<<1>>", name)
 end
 
+-- Nombre de habilidad con la primera letra en mayúscula (algunos idiomas del cliente,
+-- como el español, los dan en minúscula: "pulso de fuerza").
+function U.AbilityName(name)
+    if not name or name == "" then return "" end
+    return zo_strformat(SI_ABILITY_NAME, name)
+end
+
 function U.Color(c, default)
     c = c or default
     if type(c) ~= "table" then return 1, 1, 1, 1 end

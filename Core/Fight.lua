@@ -241,7 +241,7 @@ local function Record(stat, result, abilityName, abilityId, hitValue, damageType
     end
     stat.total = stat.total + hitValue
 
-    local name = U.FormatName(abilityName ~= "" and abilityName or GetAbilityName(abilityId))
+    local name = U.AbilityName(abilityName ~= "" and abilityName or GetAbilityName(abilityId))
     if name == "" then name = tostring(abilityId) end
     local ability = stat.abilities[name]
     if not ability then
