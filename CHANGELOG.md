@@ -5,7 +5,7 @@
 ### Medidor
 - Ventana con barras de colores ordenadas de mayor a menor: posición, icono de clase, nombre y `total (DPS, %)`, como `4.43M (53.4K, 9.5%)`.
 - Barras con aspecto de barra de progreso (borde, carril, brillo y sombra) o planas, a elegir en los ajustes.
-- Cabecera con el nombre del addon y una fila de iconos: daño del grupo, mis habilidades, combates, reiniciar, candado, ajustes y cerrar.
+- Cabecera con el nombre del addon y una fila de iconos: daño, sanación, grupo, mis habilidades, combates, reiniciar, candado, ajustes y cerrar.
 - Menú completo con clic derecho: vista, combates anteriores, reiniciar, bloquear y ajustes.
 - Pie de la ventana con un reloj y la duración del combate, y qué combate se está viendo.
 - Tamaño del texto de las barras y del título configurable; las barras y la cabecera crecen si el texto no cabe.
@@ -16,13 +16,14 @@
 ### Datos
 - Tu daño exacto a partir de los eventos de combate, incluido opcionalmente el de tus mascotas.
 - Daño del grupo mediante LibGroupCombatStats: cada miembro con Nirnhoned Metrics comparte su daño y aparece con su daño, DPS y porcentaje aproximados. Tu DPS se comparte con el grupo (se puede desactivar).
+- **Sanación**: cambia entre medir daño o sanación. Tu sanación es exacta (con sobrecuración); la del grupo llega por LibGroupCombatStats (HPS aproximado). Tu HPS también se comparte.
 - **Resto del grupo** en combates de jefe: estimación del daño de quienes no lo comparten, a partir de la vida que pierden los jefes.
-- Vista **Mis habilidades**: tu daño por habilidad, con colores por tipo de daño.
+- Vista **Mis habilidades**: tu daño o tu sanación por habilidad, con colores por tipo de daño.
 - Inicio y fin de combate automáticos (el combate empieza con tu primer golpe, que también cuenta), con espera configurable antes de cerrar el combate; si estás muerto y tu grupo sigue luchando, el combate continúa.
 - Historial de los últimos combates (10 por defecto), con el nombre del jefe o del objetivo principal.
 
 ### Ajustes
-- Panel en *Ajustes → Add-Ons*: ventana, estilo de barra, tamaños de texto, barras, colores por clase o color único, colores por tipo de daño, textos visibles, nombres de personaje o @cuenta, mostrar solo en combate, mascotas, espera de fin de combate, historial, compartir DPS y resto del grupo.
+- Panel en *Ajustes → Add-Ons*: ventana, estilo de barra, tamaños de texto, barras, colores por clase o color único, colores por tipo de daño, textos visibles, nombres de personaje o @cuenta, ocultar en PvP, mostrar solo en combate, mascotas, espera de fin de combate, historial, compartir DPS y resto del grupo.
 - Teclas para mostrar/ocultar, cambiar de vista y reiniciar.
 - Comandos de chat `/nm`.
 

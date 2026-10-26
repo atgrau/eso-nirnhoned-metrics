@@ -1,8 +1,9 @@
--- Daño de los demás miembros del grupo.
--- ESO solo informa a cada jugador de su propio daño, así que cada miembro mide el
--- suyo y lo comparte mediante LibGroupCombatStats. La librería envía el DPS en miles
--- y el daño en decenas de miles, así que las cifras de los demás son aproximadas;
--- las tuyas son exactas.
+-- Daño y sanación de los demás miembros del grupo.
+-- ESO solo informa a cada jugador de lo que hace él, así que cada miembro mide lo
+-- suyo y lo comparte mediante LibGroupCombatStats. La librería envía el DPS y el HPS
+-- en miles (y el daño en decenas de miles), así que las cifras de los demás son
+-- aproximadas; las tuyas son exactas. La sanación total no se comparte: se estima
+-- con el HPS y la duración del combate.
 -- En combates de jefe, la vida que pierde el jefe menos lo que ya se conoce da una
 -- estimación del daño de los miembros que no comparten sus datos ("resto del grupo").
 
@@ -32,27 +33,45 @@ local function MemberValues(dps, fight)
     end
 end
 
--- Copia en el combate los últimos datos recibidos de cada miembro. Solo se usan los
--- que cambiaron después de empezar el combate (los anteriores son del combate previo).
+local function GetMember(fight, tag, stats)
+    local member = fight.group[stats.name]
+    if not member then
+        member = {
+            name = U.FormatName(stats.name),
+            account = stats.displayName,
+        }
+        fight.group[stats.name] = member
+    end
+    if tag and DoesUnitExist(tag) then member.classId = GetUnitClassId(tag) end
+    return member
+end
+
+-- Solo se usan los datos que cambiaron después de empezar el combate (los anteriores
+-- son del combate previo).
+local function IsFresh(data, fight)
+    return data and (data._lastChanged or 0) >= fight.start
+end
+
+-- Copia en el combate los últimos datos recibidos de cada miembro.
 function G.Update(fight)
     if not lgcs or not fight or not IsUnitGrouped("player") then return end
     for tag, stats in lgcs:Iterate() do
-        local dps = stats.dps
-        if not stats.isPlayer and stats.name and dps and (dps._lastChanged or 0) >= fight.start then
-            local damage, value, bossDamage = MemberValues(dps, fight)
-            if damage and damage > 0 then
-                local member = fight.group[stats.name]
-                if not member then
-                    member = {
-                        name = U.FormatName(stats.name),
-                        account = stats.displayName,
-                    }
-                    fight.group[stats.name] = member
+        if not stats.isPlayer and stats.name then
+            if IsFresh(stats.dps, fight) then
+                local damage, dps, bossDamage = MemberValues(stats.dps, fight)
+                if damage and damage > 0 then
+                    local member = GetMember(fight, tag, stats)
+                    member.damage = damage
+                    member.dps = dps
+                    member.bossDamage = bossDamage
                 end
-                if tag and DoesUnitExist(tag) then member.classId = GetUnitClassId(tag) end
-                member.damage = damage
-                member.dps = value
-                member.bossDamage = bossDamage
+            end
+            local hps = stats.hps
+            if IsFresh(hps, fight) and (hps.hps or 0) > 0 then
+                local member = GetMember(fight, tag, stats)
+                member.hps = hps.hps * 1000
+                member.healing = member.hps * NM.Fight.Duration(fight)
+                member.overhealPerSecond = (hps.overheal or 0) * 1000
             end
         end
     end
@@ -72,7 +91,7 @@ function G.RestOfGroup(fight)
 end
 
 function G.Init()
-    -- Pedir "DPS" hace que la librería comparta tu DPS con el grupo; sin pedirlo
-    -- se siguen recibiendo los datos de los demás.
-    lgcs = LibGroupCombatStats.RegisterAddon(NM.name, NM.sv.shareDps and { "DPS" } or {})
+    -- Pedir "DPS" y "HPS" hace que la librería comparta los tuyos con el grupo; sin
+    -- pedirlos se siguen recibiendo los de los demás.
+    lgcs = LibGroupCombatStats.RegisterAddon(NM.name, NM.sv.shareDps and { "DPS", "HPS" } or {})
 end

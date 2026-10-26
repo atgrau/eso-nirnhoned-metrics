@@ -11,6 +11,7 @@ local Print = NM.Print
 local Meter = NM.Meter
 
 ZO_CreateStringId("SI_BINDING_NAME_NIRNHONEDMETRICS_TOGGLE", L.BINDING_TOGGLE)
+ZO_CreateStringId("SI_BINDING_NAME_NIRNHONEDMETRICS_METRIC", L.BINDING_METRIC)
 ZO_CreateStringId("SI_BINDING_NAME_NIRNHONEDMETRICS_MODE", L.BINDING_MODE)
 ZO_CreateStringId("SI_BINDING_NAME_NIRNHONEDMETRICS_RESET", L.BINDING_RESET)
 
@@ -64,6 +65,17 @@ function handlers.mode(rest)
     Print(L.MODE_SET, mode == "group" and L.MODE_GROUP or L.MODE_ABILITIES)
 end
 
+function handlers.damage()
+    Meter.SetMetric("damage")
+    Print(L.METRIC_SET, L.METRIC_DAMAGE)
+end
+
+function handlers.healing()
+    Meter.SetMetric("healing")
+    Print(L.METRIC_SET, L.METRIC_HEALING)
+end
+handlers.heal = handlers.healing
+
 function handlers.settings()
     NM.Settings.Open()
 end
@@ -90,5 +102,8 @@ end
 
 -- Teclas (Controles → Nirnhoned Metrics)
 function NirnhonedMetrics_Toggle() Meter.Toggle() end
+function NirnhonedMetrics_SwitchMetric()
+    if NM.sv.metric == "healing" then handlers.damage() else handlers.healing() end
+end
 function NirnhonedMetrics_SwitchMode() handlers.mode("") end
 function NirnhonedMetrics_Reset() NM.Fight.Reset() end

@@ -7,7 +7,7 @@ NM.name = "NirnhonedMetrics"
 NM.COLOR = "D42F2F"            -- rojo Nirnhoned (como el rasgo del juego)
 NM.title = "|c" .. NM.COLOR .. "Nirnhoned|r Metrics"
 NM.version = "1.0.0"
-NM.svVersion = 2
+NM.svVersion = 3
 NM.author = "@Artioner"
 NM.authorServer = "EU Megaserver"   -- el correo (donaciones) solo llega dentro del mismo megaservidor
 -- Textos: se rellenan en lang/en.lua y lang/<idioma del cliente>.lua.
@@ -24,9 +24,10 @@ NM.defaults = {
         shown = true,
         locked = false,
         x = nil, y = nil,         -- esquina superior izquierda; nil = posición inicial
-        width = 330,
+        width = 390,
         height = 250,
     },
+    metric = "damage",            -- "damage" | "healing"
     mode = "group",               -- "group" (miembros del grupo) | "abilities" (tus habilidades)
     rowHeight = 24,               -- mínimo; crece si el texto no cabe
     rowSpacing = 1,
@@ -35,6 +36,7 @@ NM.defaults = {
     bgAlpha = 0.55,
     barAlpha = 0.9,
     hideOutOfCombat = false,
+    hideInPvP = false,            -- ocultar en Cyrodiil, Ciudad Imperial y campos de batalla
 
     barStyle = "progress",        -- "progress" (borde, brillo y sombra) | "flat"
     colorMode = "class",          -- "class" | "single"
@@ -62,7 +64,7 @@ NM.defaults = {
     combatEndDelay = 3,           -- segundos fuera de combate antes de cerrar el combate
     historySize = 10,
     showRest = true,              -- barra estimada "Resto del grupo" en combates de jefe
-    shareDps = true,              -- compartir tu DPS con el grupo (LibGroupCombatStats)
+    shareDps = true,              -- compartir tu DPS y HPS con el grupo (LibGroupCombatStats)
 }
 
 -- Se usa el canal de sistema (no d(), que es de depuración): addons de chat como pChat

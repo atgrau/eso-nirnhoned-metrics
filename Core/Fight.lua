@@ -1,5 +1,5 @@
--- Registro de combate: tu daño por habilidad, inicio y fin de cada combate e historial.
--- El daño de los demás miembros del grupo lo añade Core/Group.lua.
+-- Registro de combate: tu daño y tu sanación por habilidad, inicio y fin de cada
+-- combate e historial. Los datos de los demás miembros del grupo los añade Core/Group.lua.
 
 local NM = NirnhonedMetrics
 local U = NM.Utils
@@ -28,8 +28,22 @@ for _, name in ipairs({
     local id = _G[name]
     if id then DAMAGE_RESULTS[id] = true end
 end
-CRIT_RESULTS[ACTION_RESULT_CRITICAL_DAMAGE] = true
-CRIT_RESULTS[ACTION_RESULT_DOT_TICK_CRITICAL] = true
+-- Resultados que cuentan como sanación hecha.
+local HEAL_RESULTS = {}
+for _, name in ipairs({
+    "ACTION_RESULT_HEAL", "ACTION_RESULT_CRITICAL_HEAL",
+    "ACTION_RESULT_HOT_TICK", "ACTION_RESULT_HOT_TICK_CRITICAL",
+}) do
+    local id = _G[name]
+    if id then HEAL_RESULTS[id] = true end
+end
+for _, name in ipairs({
+    "ACTION_RESULT_CRITICAL_DAMAGE", "ACTION_RESULT_DOT_TICK_CRITICAL",
+    "ACTION_RESULT_CRITICAL_HEAL", "ACTION_RESULT_HOT_TICK_CRITICAL",
+}) do
+    local id = _G[name]
+    if id then CRIT_RESULTS[id] = true end
+end
 
 -- El daño a ti mismo, a tus mascotas o a tu grupo no cuenta.
 local IGNORED_TARGETS = {
@@ -55,12 +69,13 @@ function F.Duration(fight)
     return math.max(1, (stop - fight.start) / 1000)
 end
 
--- Tiempo desde tu primer golpe hasta el último (o hasta ahora si sigue el combate),
--- que es lo que se usa para tu DPS.
-function F.ActiveTime(fight)
-    if not fight.firstHit then return 1 end
-    local stop = fight.ended and fight.lastHit or Now()
-    return math.max(1, (stop - fight.firstHit) / 1000)
+-- Tiempo desde tu primer golpe (o curación) hasta el último, o hasta ahora si sigue
+-- el combate: es lo que se usa para tu DPS/HPS. metric = "damage" | "healing".
+function F.ActiveTime(fight, metric)
+    local stat = fight[metric or "damage"]
+    if not stat.first then return 1 end
+    local stop = fight.ended and stat.last or Now()
+    return math.max(1, (stop - stat.first) / 1000)
 end
 
 -- Nombre del combate: el jefe o, si no hay, el objetivo que más daño recibió.
@@ -129,8 +144,10 @@ local function StartFight()
     local fight = {
         start = t,
         inCombat = IsUnitInCombat("player"),  -- si llegaste a entrar en combate
-        damage = 0,
-        abilities = {},  -- [nombre] = { name, icon, damage, hits, crits, max, damageType, pet }
+        -- Tu daño y tu sanación. abilities: [nombre] = { name, icon, amount, hits, crits,
+        -- max, overheal, damageType, pet }; first/last: primer y último evento.
+        damage = { total = 0, abilities = {} },
+        healing = { total = 0, overheal = 0, abilities = {} },
         targets = {},    -- [nombre del objetivo] = daño
         group = {},      -- [nombre del personaje] = datos de LibGroupCombatStats
         bossNames = {},  -- [nombre] = true
@@ -159,9 +176,9 @@ local function EndFight()
     F.active = nil
     F.lastEnd = Now()
 
-    -- No se guarda un combate en el que nadie hizo daño (p. ej. te atacaron y huiste)
-    -- ni uno en el que nunca llegaste a entrar en combate.
-    local empty = fight.damage == 0 and next(fight.group) == nil
+    -- No se guarda un combate en el que nadie hizo daño ni curó (p. ej. te atacaron y
+    -- huiste) ni uno en el que nunca llegaste a entrar en combate.
+    local empty = fight.damage.total == 0 and fight.healing.total == 0 and next(fight.group) == nil
     if (empty or not fight.inCombat) and F.history[1] == fight then
         table.remove(F.history, 1)
     end
@@ -216,15 +233,51 @@ end
 ---------------------------------------------------------------------------
 -- Eventos de combate
 ---------------------------------------------------------------------------
+local function Record(stat, result, abilityName, abilityId, hitValue, damageType, isPet)
+    local t = Now()
+    if hitValue > 0 then
+        stat.first = stat.first or t
+        stat.last = t
+    end
+    stat.total = stat.total + hitValue
+
+    local name = U.FormatName(abilityName ~= "" and abilityName or GetAbilityName(abilityId))
+    if name == "" then name = tostring(abilityId) end
+    local ability = stat.abilities[name]
+    if not ability then
+        ability = {
+            name = name,
+            icon = GetAbilityIcon(abilityId),
+            amount = 0, hits = 0, crits = 0, max = 0, overheal = 0,
+            damageType = damageType,
+            pet = isPet,
+        }
+        stat.abilities[name] = ability
+    end
+    ability.amount = ability.amount + hitValue
+    ability.hits = ability.hits + 1
+    if CRIT_RESULTS[result] then ability.crits = ability.crits + 1 end
+    if hitValue > ability.max then ability.max = hitValue end
+    return ability
+end
+
+-- overflow: en las curaciones, la parte que sobró (sobrecuración).
 local function OnCombatEvent(_, result, isError, abilityName, _, _, _, sourceType, targetName, targetType,
-                             hitValue, _, damageType, _, _, _, abilityId)
-    if isError or not DAMAGE_RESULTS[result] or hitValue <= 0 then return end
-    if IGNORED_TARGETS[targetType] then return end
+                             hitValue, _, damageType, _, _, _, abilityId, overflow)
+    if isError then return end
+    local isDamage = DAMAGE_RESULTS[result]
+    local isHeal = HEAL_RESULTS[result]
+    if not isDamage and not isHeal then return end
+    overflow = overflow or 0
+    if isDamage and (hitValue <= 0 or IGNORED_TARGETS[targetType]) then return end
+    if isHeal and hitValue <= 0 and overflow <= 0 then return end
     local isPet = sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
     if isPet and not NM.sv.includePets then return end
 
     local fight = F.active
     if not fight then
+        -- Las curaciones fuera de combate (regeneración, HoT) no abren un combate.
+        if isHeal and not IsUnitInCombat("player") then return end
         -- El primer golpe llega antes de que el juego te ponga en combate, así que el
         -- combate empieza aquí. Si no llegas a entrar en combate (un DoT que sigue tras
         -- terminar, una criatura neutral...), se cierra tras la espera y se descarta.
@@ -233,29 +286,14 @@ local function OnCombatEvent(_, result, isError, abilityName, _, _, _, sourceTyp
         if not fight.inCombat then ScheduleEnd(fight) end
     end
 
-    local t = Now()
-    fight.firstHit = fight.firstHit or t
-    fight.lastHit = t
-    fight.damage = fight.damage + hitValue
-
-    local name = U.FormatName(abilityName ~= "" and abilityName or GetAbilityName(abilityId))
-    if name == "" then name = tostring(abilityId) end
-    local ability = fight.abilities[name]
-    if not ability then
-        ability = {
-            name = name,
-            icon = GetAbilityIcon(abilityId),
-            damage = 0, hits = 0, crits = 0, max = 0,
-            damageType = damageType,
-            pet = isPet,
-        }
-        fight.abilities[name] = ability
+    if isHeal then
+        local ability = Record(fight.healing, result, abilityName, abilityId, hitValue, damageType, isPet)
+        ability.overheal = ability.overheal + overflow
+        fight.healing.overheal = fight.healing.overheal + overflow
+        return
     end
-    ability.damage = ability.damage + hitValue
-    ability.hits = ability.hits + 1
-    if CRIT_RESULTS[result] then ability.crits = ability.crits + 1 end
-    if hitValue > ability.max then ability.max = hitValue end
 
+    Record(fight.damage, result, abilityName, abilityId, hitValue, damageType, isPet)
     if targetName and targetName ~= "" then
         local target = U.FormatName(targetName)
         fight.targets[target] = (fight.targets[target] or 0) + hitValue

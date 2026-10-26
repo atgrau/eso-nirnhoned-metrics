@@ -221,6 +221,7 @@ function S.Init()
             default = false,
         },
         Checkbox("hideOutOfCombat", L.OPT_HIDE_OOC, L.OPT_HIDE_OOC_TT),
+        Checkbox("hideInPvP", L.OPT_HIDE_PVP, L.OPT_HIDE_PVP_TT),
         WindowSize("width", L.OPT_WIDTH, 200, 900),
         WindowSize("height", L.OPT_HEIGHT, 54, 900),
         Slider("fontSize", L.OPT_FONT_SIZE, 10, 30),
@@ -261,6 +262,7 @@ function S.Init()
             { L.NAME_CHARACTER, L.NAME_ACCOUNT }, { "character", "account" }),
 
         { type = "header", name = L.HEADER_DATA },
+        Dropdown("metric", L.OPT_METRIC, { L.METRIC_DAMAGE, L.METRIC_HEALING }, { "damage", "healing" }),
         Dropdown("mode", L.OPT_MODE, { L.MODE_GROUP, L.MODE_ABILITIES }, { "group", "abilities" }),
         Checkbox("includePets", L.OPT_PETS, L.OPT_PETS_TT),
         Slider("combatEndDelay", L.OPT_END_DELAY, 0, 10, 1, L.OPT_END_DELAY_TT),

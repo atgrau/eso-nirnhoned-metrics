@@ -30,6 +30,7 @@ local PET_TEXT = { 0.75, 0.85, 1, 1 }
 local REST_TEXT = { 0.8, 0.8, 0.8, 1 }
 local REST_COLOR = { 0.45, 0.45, 0.48, 1 }
 local WHITE = { 1, 1, 1, 1 }
+local HEAL_COLOR = { 0.35, 0.80, 0.40, 1 }   -- barras de habilidades de sanación
 
 local function Font(size)
     return string.format("$(BOLD_FONT)|%d|soft-shadow-thick", zo_round(size))
@@ -45,7 +46,7 @@ local function RowHeight()
 end
 
 local function FooterHeight()
-    return math.max(20, NM.sv.fontSize + 4)
+    return math.max(24, NM.sv.fontSize + 8)
 end
 
 local function MinHeight()
@@ -128,6 +129,16 @@ local TEX_UNLOCKED = {
     over = "EsoUI/art/miscellaneous/unlocked_over.dds",
     down = "EsoUI/art/miscellaneous/unlocked_down.dds",
 }
+local TEX_DAMAGE = {
+    up = "EsoUI/Art/LFG/LFG_dps_up.dds",
+    over = "EsoUI/Art/LFG/LFG_dps_over.dds",
+    down = "EsoUI/Art/LFG/LFG_dps_down.dds",
+}
+local TEX_HEALING = {
+    up = "EsoUI/Art/LFG/LFG_healer_up.dds",
+    over = "EsoUI/Art/LFG/LFG_healer_over.dds",
+    down = "EsoUI/Art/LFG/LFG_healer_down.dds",
+}
 local TEX_GROUP = {
     up = "EsoUI/Art/LFG/LFG_tabIcon_groupTools_up.dds",
     over = "EsoUI/Art/LFG/LFG_tabIcon_groupTools_over.dds",
@@ -184,9 +195,12 @@ local function ClassIconColor(classId)
 end
 
 -- Filas del modo grupo: tú (exacto) + los miembros que comparten datos.
-local function GroupRows(fight)
+-- metric = "damage" | "healing". Cada fila tiene amount (total) y rate (por segundo).
+local function GroupRows(fight, metric)
     local rows = {}
-    if fight.damage > 0 then
+    local healing = metric == "healing"
+    local mine = fight[metric]
+    if mine.total > 0 then
         local classId = GetUnitClassId("player")
         rows[1] = {
             name = PlayerName(),
@@ -195,31 +209,37 @@ local function GroupRows(fight)
             icon = U.ClassIcon(classId),
             iconColor = ClassIconColor(classId),
             color = ClassColor(classId),
-            damage = fight.damage,
-            dps = fight.damage / F.ActiveTime(fight),
+            amount = mine.total,
+            rate = mine.total / F.ActiveTime(fight, metric),
+            overheal = mine.overheal,
             isSelf = true,
         }
     end
     for _, member in pairs(fight.group) do
-        rows[#rows + 1] = {
-            name = MemberName(member),
-            account = member.account,
-            classId = member.classId,
-            icon = U.ClassIcon(member.classId),
-            iconColor = ClassIconColor(member.classId),
-            color = ClassColor(member.classId),
-            damage = member.damage,
-            dps = member.dps,
-            approx = true,
-        }
+        local amount = healing and member.healing or member.damage
+        if amount and amount > 0 then
+            rows[#rows + 1] = {
+                name = MemberName(member),
+                account = member.account,
+                classId = member.classId,
+                icon = U.ClassIcon(member.classId),
+                iconColor = ClassIconColor(member.classId),
+                color = ClassColor(member.classId),
+                amount = amount,
+                rate = healing and member.hps or member.dps,
+                overhealPerSecond = healing and member.overhealPerSecond or nil,
+                approx = true,
+            }
+        end
     end
-    local rest = NM.Group.RestOfGroup(fight)
+    -- La estimación del resto del grupo solo existe para el daño (vida de los jefes).
+    local rest = not healing and NM.Group.RestOfGroup(fight)
     if rest then
         rows[#rows + 1] = {
             name = L.REST_OF_GROUP,
             color = REST_COLOR,
-            damage = rest,
-            dps = rest / F.Duration(fight),
+            amount = rest,
+            rate = rest / F.Duration(fight),
             isRest = true,
         }
     end
@@ -227,64 +247,84 @@ local function GroupRows(fight)
 end
 
 -- Filas del modo habilidades: tus habilidades (y las de tus mascotas).
-local function AbilityRows(fight)
+local function AbilityRows(fight, metric)
     local rows = {}
-    local time = F.ActiveTime(fight)
+    local time = F.ActiveTime(fight, metric)
     local byType = NM.sv.abilityColorMode == "damageType"
-    for _, ability in pairs(fight.abilities) do
-        rows[#rows + 1] = {
-            name = ability.name,
-            icon = ability.icon,
-            color = byType and U.DamageTypeColor(ability.damageType) or NM.sv.barColor,
-            damage = ability.damage,
-            dps = ability.damage / time,
-            ability = ability,
-            isPet = ability.pet,
-        }
+    for _, ability in pairs(fight[metric].abilities) do
+        -- Una curación que fue toda sobrecuración no aporta nada a la lista.
+        if ability.amount > 0 then
+            local color = NM.sv.barColor
+            if byType then
+                color = metric == "healing" and HEAL_COLOR or U.DamageTypeColor(ability.damageType)
+            end
+            rows[#rows + 1] = {
+                name = ability.name,
+                icon = ability.icon,
+                color = color,
+                amount = ability.amount,
+                rate = ability.amount / time,
+                overheal = metric == "healing" and ability.overheal or nil,
+                ability = ability,
+                isPet = ability.pet,
+            }
+        end
     end
     return rows
 end
 
 function M.BuildRows(fight)
     if not fight then return {} end
-    local rows = NM.sv.mode == "abilities" and AbilityRows(fight) or GroupRows(fight)
-    table.sort(rows, function(a, b) return a.damage > b.damage end)
+    local metric = NM.sv.metric
+    local rows = NM.sv.mode == "abilities" and AbilityRows(fight, metric) or GroupRows(fight, metric)
+    table.sort(rows, function(a, b) return a.amount > b.amount end)
     local total = 0
-    for _, r in ipairs(rows) do total = total + r.damage end
-    for _, r in ipairs(rows) do r.percent = total > 0 and r.damage / total or 0 end
+    for _, r in ipairs(rows) do total = total + r.amount end
+    for _, r in ipairs(rows) do r.percent = total > 0 and r.amount / total or 0 end
     return rows, total
 end
 
 local function ValuesText(r)
     local sv = NM.sv
     local extra = {}
-    if sv.showDps then extra[#extra + 1] = U.FormatNumber(r.dps) end
+    if sv.showDps then extra[#extra + 1] = U.FormatNumber(r.rate) end
     if sv.showPercent then extra[#extra + 1] = U.FormatPercent(r.percent) end
     local text = table.concat(extra, ", ")
     if sv.showTotal then
-        local total = U.FormatNumber(r.damage)
+        local total = U.FormatNumber(r.amount)
         return text ~= "" and string.format("%s (%s)", total, text) or total
     end
     return text
 end
 
+local function Number(n)
+    return ZO_CommaDelimitNumber(zo_round(n))
+end
+
 local function RowTooltip(r)
+    local healing = NM.sv.metric == "healing"
     local lines = { "|cFFFFFF" .. r.name .. "|r" }
     if r.account and r.account ~= "" and NM.sv.nameFormat ~= "account" then
         lines[#lines + 1] = r.account
     end
     if r.classId then lines[#lines + 1] = U.ClassName(r.classId) end
     lines[#lines + 1] = ""
-    lines[#lines + 1] = string.format("%s: %s", L.TOTAL, ZO_CommaDelimitNumber(zo_round(r.damage)))
-    lines[#lines + 1] = string.format("%s: %s", L.DPS, ZO_CommaDelimitNumber(zo_round(r.dps)))
+    lines[#lines + 1] = string.format("%s: %s", healing and L.METRIC_HEALING or L.TOTAL, Number(r.amount))
+    lines[#lines + 1] = string.format("%s: %s", healing and L.HPS or L.DPS, Number(r.rate))
     lines[#lines + 1] = string.format("%s: %s", L.SHARE, U.FormatPercent(r.percent))
+    if r.overheal and r.overheal > 0 then
+        local share = r.overheal / (r.amount + r.overheal)
+        lines[#lines + 1] = string.format("%s: %s (%s)", L.OVERHEAL, Number(r.overheal), U.FormatPercent(share))
+    elseif r.overhealPerSecond and r.overhealPerSecond > 0 then
+        lines[#lines + 1] = string.format("%s: %s", L.OVERHEAL_PS, Number(r.overhealPerSecond))
+    end
     local a = r.ability
     if a then
-        lines[#lines + 1] = string.format("%s: %d", L.HITS, a.hits)
+        lines[#lines + 1] = string.format("%s: %d", healing and L.HEALS or L.HITS, a.hits)
         lines[#lines + 1] = string.format("%s: %s", L.CRIT_RATE, U.FormatPercent(a.hits > 0 and a.crits / a.hits or 0))
-        lines[#lines + 1] = string.format("%s: %s", L.AVG_HIT, ZO_CommaDelimitNumber(zo_round(a.damage / math.max(1, a.hits))))
-        lines[#lines + 1] = string.format("%s: %s", L.MAX_HIT, ZO_CommaDelimitNumber(a.max))
-        if a.pet then lines[#lines + 1] = L.PET_DAMAGE end
+        lines[#lines + 1] = string.format("%s: %s", healing and L.AVG_HEAL or L.AVG_HIT, Number(a.amount / math.max(1, a.hits)))
+        lines[#lines + 1] = string.format("%s: %s", healing and L.MAX_HEAL or L.MAX_HIT, Number(a.max))
+        if a.pet then lines[#lines + 1] = healing and L.PET_HEALING or L.PET_DAMAGE end
     end
     if r.approx or r.isRest then
         lines[#lines + 1] = ""
@@ -386,7 +426,7 @@ local function LayoutBar(row, c, barLeft, fillWidth, barMax, h)
     row.edge:SetHidden(not progress or width < 4 or fillWidth >= 0.999)
 end
 
-local function LayoutRow(row, r, rank, maxDamage, width)
+local function LayoutRow(row, r, rank, maxAmount, width)
     local sv = NM.sv
     local h = RowHeight()
     row:SetDimensions(width, h)
@@ -406,7 +446,7 @@ local function LayoutRow(row, r, rank, maxDamage, width)
         row.icon:SetHidden(true)
     end
 
-    local fraction = maxDamage > 0 and r.damage / maxDamage or 0
+    local fraction = maxAmount > 0 and r.amount / maxAmount or 0
     LayoutBar(row, r.color, barLeft, fraction, width - barLeft, h)
 
     -- Cambiar la fuente obliga a recolocar el texto: solo cuando cambia el tamaño.
@@ -446,7 +486,8 @@ local function FightName(fight)
 end
 
 local function TitleText(fight)
-    local prefix = NM.sv.mode == "abilities" and L.TITLE_ABILITIES or L.TITLE_DAMAGE
+    local prefix = NM.sv.metric == "healing" and L.TITLE_HEALING or L.TITLE_DAMAGE
+    if NM.sv.mode == "abilities" then prefix = prefix .. " · " .. L.TITLE_ABILITIES end
     return string.format("%s: %s", prefix, FightName(fight))
 end
 
@@ -469,7 +510,7 @@ function M.Refresh()
     local visible = math.max(1, math.floor((height + sv.rowSpacing) / step))
     M.scroll = zo_clamp(M.scroll, 0, math.max(0, #rows - visible))
 
-    local maxDamage = rows[1] and rows[1].damage or 0
+    local maxAmount = rows[1] and rows[1].amount or 0
     local shown = 0
     for i = 1, visible do
         local r = rows[i + M.scroll]
@@ -477,7 +518,7 @@ function M.Refresh()
         local row = GetRow(i)
         row:ClearAnchors()
         row:SetAnchor(TOPLEFT, M.content, TOPLEFT, 0, (i - 1) * step)
-        LayoutRow(row, r, i + M.scroll, maxDamage, width)
+        LayoutRow(row, r, i + M.scroll, maxAmount, width)
         shown = i
     end
     for i = shown + 1, #M.rows do
@@ -503,10 +544,16 @@ end
 ---------------------------------------------------------------------------
 -- Visibilidad, bloqueo y posición
 ---------------------------------------------------------------------------
+-- Cyrodiil, Ciudad Imperial o campo de batalla.
+local function InPvP()
+    return (IsPlayerInAvAWorld and IsPlayerInAvAWorld())
+        or (IsActiveWorldBattleground and IsActiveWorldBattleground())
+end
+
 function M.UpdateVisibility()
     if not M.frame then return end
     local sv = NM.sv
-    local hidden = not sv.window.shown
+    local hidden = not sv.window.shown or (sv.hideInPvP and InPvP())
     if not hidden and sv.hideOutOfCombat and not F.active and not IsUnitInCombat("player") then
         local since = F.lastEnd and (GetGameTimeMilliseconds() - F.lastEnd) or math.huge
         if since >= SHOW_AFTER_COMBAT_MS then
@@ -727,18 +774,33 @@ local function Check(on, text)
 end
 
 -- El icono de la vista activa se ve encendido y el otro apagado.
+local function SetActive(button, textures, active)
+    button:SetNormalTexture(active and textures.down or textures.up)
+    button:SetAlpha(active and 1 or 0.6)
+end
+
 local function UpdateModeButtons()
     if not M.groupBtn then return end
+    local healing = NM.sv.metric == "healing"
+    SetActive(M.damageBtn, TEX_DAMAGE, not healing)
+    SetActive(M.healingBtn, TEX_HEALING, healing)
     local isGroup = NM.sv.mode ~= "abilities"
-    M.groupBtn:SetNormalTexture(isGroup and TEX_GROUP.down or TEX_GROUP.up)
-    M.groupBtn:SetAlpha(isGroup and 1 or 0.6)
-    M.abilitiesBtn:SetNormalTexture(isGroup and TEX_ABILITIES.up or TEX_ABILITIES.down)
-    M.abilitiesBtn:SetAlpha(isGroup and 0.6 or 1)
+    SetActive(M.groupBtn, TEX_GROUP, isGroup)
+    SetActive(M.abilitiesBtn, TEX_ABILITIES, not isGroup)
 end
 M.UpdateModeButtons = UpdateModeButtons
 
+-- Vista: "group" (miembros del grupo) | "abilities" (tus habilidades).
 function M.SetMode(mode)
     NM.sv.mode = mode
+    M.scroll = 0
+    UpdateModeButtons()
+    M.Refresh()
+end
+
+-- Qué se mide: "damage" | "healing".
+function M.SetMetric(metric)
+    NM.sv.metric = metric
     M.scroll = 0
     UpdateModeButtons()
     M.Refresh()
@@ -757,7 +819,7 @@ local function FightMenuLabel(fight, index)
     else
         name = F.Label(fight) or string.format(L.FIGHT_N, index)
     end
-    return string.format("%s  |c999999%s · %s|r", name, U.FormatDuration(F.Duration(fight)), U.FormatNumber(fight.damage))
+    return string.format("%s  |c999999%s · %s|r", name, U.FormatDuration(F.Duration(fight)), U.FormatNumber(fight[NM.sv.metric].total))
 end
 
 -- Descripción del icono de combates: qué combate se está viendo.
@@ -782,6 +844,10 @@ end
 function M.ShowMenu(anchor)
     ClearMenu()
     local sv = NM.sv
+    AddMenuItem(L.MENU_METRIC, nil, MENU_ADD_OPTION_LABEL)
+    AddMenuItem(Check(sv.metric ~= "healing", L.METRIC_DAMAGE), function() M.SetMetric("damage") end)
+    AddMenuItem(Check(sv.metric == "healing", L.METRIC_HEALING), function() M.SetMetric("healing") end)
+
     AddMenuItem(L.MENU_VIEW, nil, MENU_ADD_OPTION_LABEL)
     AddMenuItem(Check(sv.mode == "group", L.MODE_GROUP), function() M.SetMode("group") end)
     AddMenuItem(Check(sv.mode == "abilities", L.MODE_ABILITIES), function() M.SetMode("abilities") end)
@@ -832,7 +898,7 @@ local function Build()
     M.header = header
 
     -- Nombre del addon y, a la derecha, la fila de iconos (de derecha a izquierda:
-    -- cerrar, ajustes, candado, reiniciar, combates, mis habilidades, grupo).
+    -- cerrar, ajustes, candado, reiniciar, combates, mis habilidades, grupo, sanación, daño).
     -- Con la ventana bloqueada, cerrar y ajustes se ocultan (ver M.SetLocked).
     local close = IconButton("NirnhonedMetricsClose", header, TEX_CLOSE, L.HIDE_WINDOW, function() M.SetShown(false) end)
     close:SetDimensions(16, 16)
@@ -864,10 +930,18 @@ local function Build()
         function() M.SetMode("group") end)
     M.groupBtn:SetAnchor(RIGHT, M.abilitiesBtn, LEFT, 0, 0)
 
+    M.healingBtn = IconButton("NirnhonedMetricsMetricHealing", header, TEX_HEALING, L.METRIC_HEALING,
+        function() M.SetMetric("healing") end)
+    M.healingBtn:SetAnchor(RIGHT, M.groupBtn, LEFT, -6, 0)
+
+    M.damageBtn = IconButton("NirnhonedMetricsMetricDamage", header, TEX_DAMAGE, L.METRIC_DAMAGE,
+        function() M.SetMetric("damage") end)
+    M.damageBtn:SetAnchor(RIGHT, M.healingBtn, LEFT, 0, 0)
+
     M.title = Label("NirnhonedMetricsTitle", header, TEXT_ALIGN_LEFT)
     M.title:SetText(NM.title)
     M.title:SetAnchor(LEFT, header, LEFT, 6, 0)
-    M.title:SetAnchor(RIGHT, M.groupBtn, LEFT, -6, 0)
+    M.title:SetAnchor(RIGHT, M.damageBtn, LEFT, -6, 0)
 
     -- Pie: reloj con la duración del combate y, a la derecha, qué combate se ve.
     local footer = Solid("NirnhonedMetricsFooter", frame, 0.05, 0.05, 0.07, 0.9)
@@ -908,7 +982,7 @@ local function ApplyHeader()
     SetLabelFont(M.title, Font(NM.sv.titleFontSize))
 
     local footerH = FooterHeight()
-    local footerFont = Font(NM.sv.fontSize - 2)
+    local footerFont = Font(NM.sv.fontSize)
     M.footer:SetHeight(footerH)
     M.clock:SetDimensions(footerH - 4, footerH - 4)
     SetLabelFont(M.footerTime, footerFont)
@@ -941,6 +1015,8 @@ function M.Init()
         end
         if what then M.UpdateVisibility() else M.Refresh() end
     end)
+    -- Al cambiar de zona puede entrar o salir de PvP.
+    EM:RegisterForEvent(NM.name .. "_MeterZone", EVENT_PLAYER_ACTIVATED, M.UpdateVisibility)
 
     M.UpdateVisibility()
 end
