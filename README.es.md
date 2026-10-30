@@ -8,7 +8,7 @@
 
 **Un medidor de daño y sanación para The Elder Scrolls Online.** Barras de colores con el daño o la sanación total, el DPS/HPS y el porcentaje del grupo de cada jugador en cada combate, además del desglose de tus propias habilidades. Todo en una ventana pequeña que puedes mover, redimensionar y configurar.
 
-Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
+Versión actual: **1.1.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
 <summary><b>Capturas</b> (9)</summary>
@@ -36,7 +36,8 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 - `/nm` muestra y oculta el medidor. También con una tecla en *Controles → Nirnhoned Metrics*.
 - Cada barra muestra `4.43M (53.4K, 9.5%)`: daño total, DPS y porcentaje del grupo, ordenados de mayor a menor, con el icono y el color de la clase.
-- La barra de título muestra el nombre del addon y los iconos: **Daño**, **Sanación**, **Grupo**, **Mis habilidades**, combates anteriores, reiniciar, candado, ajustes y cerrar. El clic derecho en el medidor abre el menú completo.
+- La barra de título muestra el título (el del addon o uno tuyo, con colores) y los iconos en tres grupos: **Daño** y **Sanación** · **Grupo** y **Mis habilidades** · combates anteriores, reiniciar, plegar, candado, ajustes y cerrar. El clic derecho en el medidor abre el menú completo.
+- La flecha de la barra de título pliega la ventana (solo queda la barra de título) y la vuelve a desplegar.
 - El pie de la ventana muestra la duración del combate (con un reloj) y qué combate se está viendo.
 - **Daño / Sanación:** cambia lo que se mide. En sanación se ve el HPS y, en la descripción emergente, la sobrecuración.
 - **Mis habilidades** muestra tu daño o tu sanación por habilidad (y por mascota) con colores por tipo de daño. Al pasar el ratón por una barra se ven los golpes, el porcentaje de críticos, el golpe medio y el máximo.
@@ -48,8 +49,8 @@ Versión actual: **1.0.0** (ver [CHANGELOG.md](CHANGELOG.md)).
 ### Librerías necesarias
 
 Minion las instala solas:
-- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html): los ajustes.
-- [LibGroupCombatStats](https://github.com/m00nyONE/LibGroupCombatStats): compartir el daño con el grupo (trae consigo LibGroupBroadcast y LibCombat).
+- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) r43 o posterior: los ajustes.
+- [LibGroupCombatStats](https://www.esoui.com/downloads/info4024-LibGroupCombatStats.html) 2026-10-04 o posterior: compartir el daño con el grupo (trae consigo LibGroupBroadcast y LibCombat).
 
 ### Comandos de chat
 
@@ -100,8 +101,22 @@ Bindings.xml            teclas
 
 1. Subir `NM.version` en `NirnhonedMetrics.lua` y `## Version` / `## AddOnVersion` en `NirnhonedMetrics.txt`.
 2. Actualizar `L.CHANGELOG` en los cuatro `lang/*.lua` (es lo que ve el jugador al actualizar) y `CHANGELOG.md`.
-3. Revisar `## APIVersion` (en el juego: `/script d(GetAPIVersion())`).
+3. Revisar `## APIVersion` (en el juego: `/script d(GetAPIVersion())`) y que los `>=` de `## DependsOn` sean el `## AddOnVersion` actual de cada librería (está en su manifiesto `.txt`/`.addon`).
 4. Empaquetar en un zip con la carpeta `NirnhonedMetrics/` dentro (el zip debe contener la carpeta, no los archivos sueltos, y la carpeta debe llamarse igual que el manifiesto).
+
+- **Globales:** solo `NirnhonedMetrics` (y `NirnhonedMetrics_SV`). Las teclas llaman a funciones de esa tabla (`NirnhonedMetrics.Toggle()`...). Las SavedVariables son iguales en todos los servidores a propósito: solo guardan preferencias.
+- **Filtros de eventos:** lo que filtra `AddFilterForEvent` no se vuelve a comprobar en Lua.
+
+## Créditos
+
+- **sirinsidiator**: [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) (panel de ajustes) y LibGroupBroadcast.
+- **m00nyONE**: [LibGroupCombatStats](https://www.esoui.com/downloads/info4024-LibGroupCombatStats.html) (compartir DPS/HPS con el grupo).
+- **Solinur**: LibCombat, que usa LibGroupCombatStats.
+- Los iconos son del propio juego (ZeniMax Online Studios).
+
+## Uso de IA
+
+Nirnhoned Metrics se ha desarrollado con ayuda de un asistente de programación con IA (Claude Code, de Anthropic). He revisado y probado el código en el juego y lo mantengo yo.
 
 ## Apoyo
 

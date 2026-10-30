@@ -39,9 +39,11 @@
 - **My abilities** — switch the view to see your own damage or healing per ability (and per pet), colored by damage type. Hover over a bar for hits, critical rate, average and highest hit.
 - **Fight history** — the last fights are kept (10 by default); open any of them from the fights icon.
 - **Fight duration** — the footer shows how long the fight lasted (with a clock icon) and which fight you are viewing.
-- **Title bar icons** — damage, healing, group, my abilities, fights, reset, lock, settings and close.
+- **Title bar icons** — in three groups: damage and healing · group and my abilities · fights, reset, collapse, lock, settings and close.
+- **Collapse** — the arrow in the title bar folds the window down to its title bar and unfolds it again.
+- **Custom title** — keep the default title or write your own, with a color of your choice or ESO color codes.
 - **Move and resize** — unlock the window with the padlock, drag it from anywhere and resize it from its edges or the bottom-right corner. Mouse wheel scrolls when there are more bars than fit.
-- **Settings** — size, bar style (progress bar or flat), bar height, spacing, bar and title text size, opacities, colors per class, single color, damage-type colors, which values to show, character or @account names, only show in combat, hide in PvP, pet damage, fight end delay, history size, DPS sharing and the rest-of-group estimate.
+- **Settings** — window title, size, bar style (progress bar or flat), bar height, spacing, bar and title text size, opacities, colors per class, single color, damage-type colors, which values to show, character or @account names, only show in combat, hide in PvP, pet damage, fight end delay, history size, DPS sharing and the rest-of-group estimate.
 - **Languages** — English, Spanish, German and French (follows the game client language).
 
 ## Installation
@@ -54,8 +56,8 @@
 3. Start the game and enable Nirnhoned Metrics in the Add-Ons menu.
 
 **Required libraries** (Minion installs them automatically):
-- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) — the settings in *Settings → Add-Ons*.
-- [LibGroupCombatStats](https://github.com/m00nyONE/LibGroupCombatStats) — sharing damage with your group (it brings LibGroupBroadcast and LibCombat with it).
+- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) r43 or newer — the settings in *Settings → Add-Ons*.
+- [LibGroupCombatStats](https://www.esoui.com/downloads/info4024-LibGroupCombatStats.html) 2026-10-04 or newer — sharing damage with your group (it brings LibGroupBroadcast and LibCombat with it).
 
 ## Quick start
 
@@ -83,6 +85,17 @@ Bug reports and ideas are welcome in [Issues](../../issues).
 If you enjoy Nirnhoned Metrics, you can support it:
 - On [Ko-fi](https://ko-fi.com/artion).
 - With gold in-game to **@Artioner** (EU megaserver) — there is a *Donate gold* button in the settings.
+
+## Credits
+
+- **sirinsidiator** — [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) (settings panel) and LibGroupBroadcast.
+- **m00nyONE** — [LibGroupCombatStats](https://www.esoui.com/downloads/info4024-LibGroupCombatStats.html) (sharing DPS/HPS with the group).
+- **Solinur** — LibCombat, used by LibGroupCombatStats.
+- The icons are the game's own art (ZeniMax Online Studios).
+
+## AI disclosure
+
+Nirnhoned Metrics was developed with the help of an AI coding assistant (Claude Code, by Anthropic). I reviewed and tested the code in game and maintain it myself.
 
 ## Development
 
