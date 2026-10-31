@@ -525,16 +525,15 @@ local function TitleText(fight)
     return string.format("%s: %s", prefix, FightName(fight))
 end
 
--- Pie: duración del combate y, detrás, el DPS (o HPS) total del combate: la suma de
--- todas las barras de la vista entre la duración del combate.
+-- Pie: duración del combate y, detrás, el DPS (o HPS) total: la suma del DPS de todas
+-- las barras de la vista, así que yendo solo coincide con el de tu barra.
 local function FooterTimeText(fight, rows)
-    local duration = fight and F.Duration(fight) or 0
-    local text = U.FormatDuration(duration)
+    local text = U.FormatDuration(fight and F.Duration(fight) or 0)
     if not fight or not NM.sv.showFightRate or #rows == 0 then return text end
     local total = 0
-    for _, r in ipairs(rows) do total = total + r.amount end
+    for _, r in ipairs(rows) do total = total + r.rate end
     local label = NM.sv.metric == "healing" and L.HPS or L.DPS
-    return string.format("%s   |cAAAAAA%s:|r %s", text, label, U.FormatNumber(total / duration))
+    return string.format("%s   |cAAAAAA%s:|r %s", text, label, U.FormatNumber(total))
 end
 
 function M.Refresh()

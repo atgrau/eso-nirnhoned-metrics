@@ -8,7 +8,7 @@
 
 **Un medidor de daño y sanación para The Elder Scrolls Online.** Barras de colores con el daño o la sanación total, el DPS/HPS y el porcentaje del grupo de cada jugador en cada combate, además del desglose de tus propias habilidades. Todo en una ventana pequeña que puedes mover, redimensionar y configurar.
 
-Versión actual: **1.2.0** (ver [CHANGELOG.md](CHANGELOG.md)).
+Versión actual: **1.2.1** (ver [CHANGELOG.md](CHANGELOG.md)).
 
 <details>
 <summary><b>Capturas</b> (9)</summary>

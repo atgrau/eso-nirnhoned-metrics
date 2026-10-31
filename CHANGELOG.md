@@ -1,9 +1,14 @@
 # Changelog
 
+## 1.2.1
+
+### Correcciones
+- El DPS (o HPS) del pie es ahora la suma del DPS de todas las barras de la vista: yendo solo coincide con el de tu barra. En la 1.2.0 se dividía el total entre la duración de todo el combate y salía algo menor.
+
 ## 1.2.0
 
 ### Novedades
-- El pie muestra, junto a la duración, el DPS (o HPS) total del combate: la suma de todas las barras de la vista entre la duración del combate. Se puede quitar en *Ajustes → Texto*.
+- El pie muestra, junto a la duración, el DPS (o HPS) total del combate. Se puede quitar en *Ajustes → Texto*.
 - Iconos de la cabecera configurables en *Ajustes → Ventana → Iconos de la barra de título*: una casilla por icono. Los demás se recolocan sin dejar huecos y las líneas separadoras solo aparecen entre grupos con algún icono.
 - Opción *Ocultar* en el menú del clic derecho, para cuando el icono de cerrar está oculto.
 - Valores de las barras configurables en *Ajustes → Texto*: tres desplegables (valor 1, valor 2 y valor 3) con oculto, total, DPS/HPS o porcentaje. Las barras muestran `valor1 (valor2, valor3)`, saltando los ocultos. Sugerencia de un usuario de ESOUI.
